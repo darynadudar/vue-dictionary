@@ -1,43 +1,77 @@
-<script setup>
-import { ref } from 'vue'
+<script>
+import axios from "axios";
+import { globalMixin } from '@/mixins/globalMixin';
 
-defineProps({
-  msg: String,
-})
-
-const count = ref(0)
+export default {
+    name: "App",
+    mixins: [globalMixin],
+    data() {
+        return {
+            requestAPI: 'https://api.dictionaryapi.dev/api/v2/entries/en/',
+            searchQuery: '',
+            word: {},
+        };
+    },
+    watch: {
+        searchQuery(newQuery) {
+            this.getAnswer(newQuery);
+        }
+    },
+    methods: {
+        async getAnswer(searchQuery) {
+            const { data } = await axios.get(this.requestAPI + searchQuery);
+            this.word = data[0];
+            console.log(this.word);
+        },
+        debouncedSearch() {
+            $debounce(function() {
+                if (this.input.length >= 2) {
+                    this.getAnswer(this.input);
+                }
+            }, 300);
+        }
+    }
+};
 </script>
 
 <template>
-  <h1>{{ msg }}</h1>
+    <input
+        type="text"
+        v-model="searchQuery"
+        placeholder="Search words..."
+        class="px-6 py-5"
+    />
 
-  <div class="card">
-    <button type="button" @click="count++">count is {{ count }}</button>
-    <p>
-      Edit
-      <code>components/HelloWorld.vue</code> to test HMR
-    </p>
-  </div>
+    <div>
+        <div v-if="word && word.word">
+            <h2 class="text-heading font-bold">{{ word.word }}</h2>
+            <p>{{ word.phonetic }}</p>
 
-  <p>
-    Check out
-    <a href="https://vuejs.org/guide/quick-start.html#local" target="_blank"
-      >create-vue</a
-    >, the official Vue + Vite starter
-  </p>
-  <p>
-    Learn more about IDE Support for Vue in the
-    <a
-      href="https://vuejs.org/guide/scaling-up/tooling.html#ide-support"
-      target="_blank"
-      >Vue Docs Scaling up Guide</a
-    >.
-  </p>
-  <p class="read-the-docs">Click on the Vite and Vue logos to learn more</p>
+            <div>
+                <div v-for="meaning in word.meanings">
+                    <p>{{ meaning.partOfSpeech }}</p>
+
+                    <div>
+                        <span>
+                            Meaning
+                        </span>
+                        <ul v-for="definition in meaning.definitions">
+                            <li>{{ definition.definition }}</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div v-else>
+            <p class="text-xl font-bold mb-6">No Definitions Found</p>
+            <p class="text-base">
+                Sorry pal, we couldn't find definitions for the word you were looking for. You can try the search again atlater time or head to the web instead.
+            </p>
+        </div>
+    </div>
 </template>
 
 <style scoped>
-.read-the-docs {
-  color: #888;
-}
+
 </style>
